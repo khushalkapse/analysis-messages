@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-900 text-white;
+}
+
+/* Custom scrollbar for horizontal scroll */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  @apply bg-gray-800 rounded;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
