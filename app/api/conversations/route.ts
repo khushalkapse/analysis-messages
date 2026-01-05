@@ -66,6 +66,10 @@ GROUP BY sender_id, receiver_id
 ORDER BY sender_id;
 `;
 
+// Force dynamic rendering to prevent caching
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     if (!process.env.DATABASE_URL) {
@@ -83,7 +87,14 @@ export async function GET() {
 
     try {
       const result = await client.query(SQL_QUERY);
-      return NextResponse.json(result.rows);
+      return NextResponse.json(result.rows, {
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
     } finally {
       client.release();
     }

@@ -64,6 +64,10 @@ GROUP BY sender_id, receiver_id
 ORDER BY sender_id;
 `;
 
+// Force dynamic rendering to prevent caching
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   try {
     if (!process.env.DATABASE_URL) {
@@ -187,7 +191,14 @@ export async function GET(request: Request) {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
-      return NextResponse.json(analytics);
+      return NextResponse.json(analytics, {
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
     } finally {
       client.release();
     }
