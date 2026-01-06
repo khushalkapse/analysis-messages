@@ -61,7 +61,7 @@ export default function ChatView({
         </div>
         <div className="space-y-2">
           {conversation.map((message, index) => (
-            <MessageBubble key={index} message={message} />
+            <MessageBubble key={index} message={message} senderId={senderId} />
           ))}
         </div>
       </div>
