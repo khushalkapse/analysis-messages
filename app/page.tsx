@@ -258,20 +258,20 @@ export default function Dashboard() {
         <h1 className="text-xl font-bold text-white">
           Instagram Conversations
         </h1>
-        {/* <a
+        <a
           href="/analytics"
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           View Analytics
-        </a> */}
+        </a>
       </div>
-      {/* <Filters
+      <Filters
         receiverIdFilter={receiverIdFilter}
         searchQuery={searchQuery}
         onReceiverIdChange={setReceiverIdFilter}
         onSearchChange={setSearchQuery}
         availableReceiverIds={availableReceiverIds}
-      /> */}
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           conversations={filteredConversations}
