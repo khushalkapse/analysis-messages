@@ -35,19 +35,19 @@ function highlightJsonFields(
     const key = highlightKeys[idx];
     // Reset regex lastIndex to avoid issues with multiple patterns
     pattern.lastIndex = 0;
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = pattern.exec(jsonString)) !== null) {
       // Check if this match overlaps with a previous match
       const overlaps = matches.some(
         (m) =>
-          (match.index >= m.index && match.index < m.index + m.length) ||
-          (m.index >= match.index && m.index < match.index + match[0].length)
+          (match!.index >= m.index && match!.index < m.index + m.length) ||
+          (m.index >= match!.index && m.index < match!.index + match![0].length)
       );
 
       if (!overlaps) {
         matches.push({
-          index: match.index,
-          length: match[0].length,
+          index: match!.index,
+          length: match![0].length,
           key: key,
         });
       }
