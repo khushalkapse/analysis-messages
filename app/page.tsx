@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ChatView from "@/components/ChatView";
 import Filters from "@/components/Filters";
@@ -25,12 +26,16 @@ export default function Dashboard() {
   const [availableReceiverIds, setAvailableReceiverIds] = useState<string[]>(
     []
   );
+  const queryClient = useQueryClient();
+  const pathname = usePathname();
 
   // Fetch conversations with TanStack Query
   const {
     data: conversations = [],
     isLoading: loading,
     error: queryError,
+    refetch: refetchConversations,
+    isRefetching,
   } = useQuery<Conversation[]>({
     queryKey: ["conversations"],
     queryFn: async () => {
@@ -40,7 +45,23 @@ export default function Dashboard() {
       }
       return response.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes - use cache if data is less than 5 minutes old
+    gcTime: 5 * 60 * 1000, // 5 minutes - keep cache for 5 minutes
   });
+
+  // Refetch all queries when page changes
+  useEffect(() => {
+    const refetchAll = async () => {
+      await queryClient.refetchQueries();
+    };
+    refetchAll();
+  }, [pathname, queryClient]);
+
+  const handleRefresh = async () => {
+    // Invalidate cache to mark data as stale, then refetch
+    await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    await refetchConversations();
+  };
 
   const error =
     queryError instanceof Error
@@ -258,12 +279,44 @@ export default function Dashboard() {
         <h1 className="text-xl font-bold text-white">
           Instagram Conversations
         </h1>
-        <a
-          href="/analytics"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          View Analytics
-        </a>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefetching}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+          >
+            {isRefetching ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                  />
+                </svg>
+                Refresh
+              </>
+            )}
+          </button>
+          <a
+            href="/analytics"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            View Analytics
+          </a>
+        </div>
       </div>
       <Filters
         receiverIdFilter={receiverIdFilter}

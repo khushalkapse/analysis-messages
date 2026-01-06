@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 // Static mapping of receiver_id to names
@@ -33,9 +34,11 @@ export default function AnalyticsPage() {
   const [availableReceiverIds, setAvailableReceiverIds] = useState<string[]>(
     []
   );
+  const queryClient = useQueryClient();
+  const pathname = usePathname();
 
   // Fetch all receiver IDs for the filter dropdown
-  const { data: allConversations } = useQuery({
+  const { data: allConversations, refetch: refetchConversations } = useQuery({
     queryKey: ["conversations"],
     queryFn: async () => {
       const response = await fetch("/api/conversations");
@@ -44,7 +47,17 @@ export default function AnalyticsPage() {
       }
       return response.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes - use cache if data is less than 5 minutes old
+    gcTime: 5 * 60 * 1000, // 5 minutes - keep cache for 5 minutes
   });
+
+  // Refetch all queries when page changes
+  useEffect(() => {
+    const refetchAll = async () => {
+      await queryClient.refetchQueries();
+    };
+    refetchAll();
+  }, [pathname, queryClient]);
 
   // Extract unique receiver IDs
   useEffect(() => {
@@ -61,6 +74,8 @@ export default function AnalyticsPage() {
     data: analytics,
     isLoading: loading,
     error: queryError,
+    refetch: refetchAnalytics,
+    isRefetching,
   } = useQuery<Analytics>({
     queryKey: ["analytics", receiverIdFilter],
     queryFn: async () => {
@@ -73,7 +88,18 @@ export default function AnalyticsPage() {
       }
       return response.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes - use cache if data is less than 5 minutes old
+    gcTime: 5 * 60 * 1000, // 5 minutes - keep cache for 5 minutes
   });
+
+  const handleRefresh = async () => {
+    // Invalidate cache to mark data as stale, then refetch
+    await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["analytics", receiverIdFilter],
+    });
+    await Promise.all([refetchConversations(), refetchAnalytics()]);
+  };
 
   const error =
     queryError instanceof Error
@@ -131,12 +157,44 @@ export default function AnalyticsPage() {
               )}
             </p>
           </div>
-          <Link
-            href="/"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-          >
-            Back to Conversations
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefetching}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              {isRefetching ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
+                  </svg>
+                  Refresh
+                </>
+              )}
+            </button>
+            <Link
+              href="/"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Back to Conversations
+            </Link>
+          </div>
         </div>
 
         {/* Receiver ID Filter */}
@@ -280,8 +338,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-                {/* Receiver Info */}
-                <div className="bg-gray-800 rounded-lg p-6 mb-6">
+        {/* Receiver Info */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Receiver Info</h2>
           <div className="space-y-2">
             {availableReceiverIds.length > 0 ? (
@@ -315,8 +373,6 @@ export default function AnalyticsPage() {
             )}
           </div>
         </div>
-
-        
       </div>
     </div>
   );
